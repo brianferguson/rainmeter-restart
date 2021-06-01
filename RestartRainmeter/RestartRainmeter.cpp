@@ -85,6 +85,9 @@ int APIENTRY wWinMain(HINSTANCE instance, HINSTANCE prevInstance, LPWSTR cmdLine
 		DispatchMessage(&msg);
 	}
 
+	KillTimer(window, g_ResponseEventID);
+	KillTimer(window, g_AppCloseEventID);
+
 	CoUninitialize();
 	return (int)msg.wParam;
 }
@@ -141,7 +144,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				else
 				{
 					// Rainmeter has finally closed, restart it and close this program
-					ShellExecute(nullptr, L"open", g_RainmeterPath.c_str(), L"", nullptr, SW_SHOWNORMAL);
+					std::wstring exe = g_RainmeterPath + L"Rainmeter.exe";
+
+					SHELLEXECUTEINFO info = { 0 };
+					info.cbSize = sizeof(info);
+					info.fMask = SEE_MASK_NOASYNC | SEE_MASK_FLAG_NO_UI | SEE_MASK_UNICODE | SEE_MASK_WAITFORINPUTIDLE;
+					info.hwnd = nullptr;
+					info.lpVerb = L"open";
+					info.lpFile = exe.c_str();
+					info.lpDirectory = g_RainmeterPath.c_str();
+					info.lpParameters = L"";
+					info.nShow = SW_SHOWNORMAL;
+
+					ShellExecuteEx(&info);
 					PostQuitMessage(0);
 				}
 			}
@@ -159,10 +174,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 					KillTimer(hWnd, g_ResponseEventID);  // Got a response, no need to close this program yet
 
 					g_RainmeterPath = (WCHAR*)cds->lpData;
-					g_RainmeterPath += L"Rainmeter.exe";
+
+					std::wstring exe = g_RainmeterPath + L"Rainmeter.exe";
 
 					// Ask Rainmeter to quit nicely, and wait for it to be closed
-					ShellExecute(nullptr, L"open", g_RainmeterPath.c_str(), L"!Quit", nullptr, SW_SHOWNORMAL);
+					ShellExecute(nullptr, L"open", exe.c_str(), L"!Quit", nullptr, SW_SHOWNORMAL);
 					SetTimer(hWnd, g_AppCloseEventID, g_AppCloseInterval, nullptr);
 				}
 				break;
@@ -171,8 +187,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-		KillTimer(hWnd, g_ResponseEventID);
-		KillTimer(hWnd, g_AppCloseEventID);
 		PostQuitMessage(0);
 		break;
 
